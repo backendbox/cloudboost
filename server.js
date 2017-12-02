@@ -458,7 +458,7 @@ app.set('port', 4730); //SET THE DEFAULT PORT.
 http.listen(app.get('port'), function() {
     try {
 
-        var filePath = './config/cloudboost.json';
+        var filePath = './config/cloudboost.js';
         _checkFileExists(filePath).then(function(data) {
             if (data) {
                 try {
