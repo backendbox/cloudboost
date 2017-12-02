@@ -6,25 +6,25 @@
 */
 
 module.exports = {
-	
-	getAccessList : function(req){
+    
+    getAccessList : function(req){
 
-		//req is a http request object.
+        //req is a http request object.
 
         try{
-    		var accessList = {};
+            var accessList = {};
 
-    		if(!req || !req.session)
-    			return accessList;
-    		if(req.session.userId){
-    			accessList.userId = req.session.userId;
-    		}
+            if(!req || !req.session)
+                return accessList;
+            if(req.session.userId){
+                accessList.userId = req.session.userId;
+            }
 
-    		if(req.session.roles){
-    			accessList.roles  = req.session.roles;
-    		}
+            if(req.session.roles){
+                accessList.roles  = req.session.roles;
+            }
 
-    		return accessList;
+            return accessList;
 
         }catch(err){                    
             global.winston.log('error',{"error":String(err),"stack": new Error().stack});  
@@ -135,7 +135,9 @@ module.exports = {
                                             status = true;
                                         }
                                     }
-                                    deferred.reject(false);
+                                    if (!status) {
+                                        deferred.reject(false);
+                                    }
                                 }
                             }
                         }
