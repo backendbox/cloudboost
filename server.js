@@ -748,13 +748,14 @@ function setUpMongoDB() {
         mongoConnectionString += "/"; //de limitter.
         global.keys.mongoConnectionString = mongoConnectionString;
 
-        console.log("MongoDb connection string:" + global.keys.mongoConnectionString);
 
         if (isReplicaSet) {
             console.log("MongoDB is in ReplicaSet");
-            var str = "?replicaSet=cloudboost";
+            var str = "?replicaSet=rs1&slaveOk=true&maxPoolSize=200&ssl=false&connectTimeoutMS=30000&socketTimeoutMS=30000&w=1&wtimeoutMS=30000";
             global.keys.mongoConnectionString += str;
         }
+        
+        console.log("MongoDb connection string:" + global.keys.mongoConnectionString);
 
     } catch (err) {
         global.winston.log('error', {

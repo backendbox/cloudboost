@@ -13,12 +13,12 @@ module.exports = function (){
         cacheAppPrefix : 'app',
         cacheSchemaPrefix: 'schema',
         schemaExpirationTimeFromCache: 86400,
-        analyticsUrl: 'https://cluster-analytics.cloudboost.io',
+        analyticsUrl: 'http://cb-analytics:5555',
         globalDb : "_GLOBAL",
         globalSettings : "_Settings",
         analyticsKey : "109eb359-3d22-4165-9e21-21439637f975",
-        logToken : "c064fc7e-4fc6-41e6-b51f-32c30deafdcc",
-        logglySubDomain : "cloudboost",
+        logToken : "8939ac60-d759-49ce-852a-95467be01d37",
+        logglySubDomain : "backendbox",
         slackWebHook : process.env['SLACK_WEBHOOK']
     };
 };

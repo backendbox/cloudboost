@@ -13,11 +13,13 @@ module.exports = {
     //@rolesId - Array of string - RoleId
     //ACL - ACL Object.
     isAllowedReadAccess : function (userId, rolesId, acl) {
-        
+        console.log(userId + 'aaa')
+        console.log(rolesId + 'bbb')
+        console.log(JSON.stringify(acl) + 'ccc')
         try{
             if (acl) {
                 if (acl.read) {
-                    
+
                     //when public is allowed.
                     if (acl.read.allow.user.indexOf('all') > -1) {
                         if (userId && acl.read.deny && acl.read.deny.user && (acl.read.deny.user.indexOf(userId) === -1)) {
@@ -27,7 +29,6 @@ module.exports = {
                             return true;
                         }
                     }
-                    
                     //user
                     if (acl.read.deny && acl.read.deny.user && (acl.read.deny.user.indexOf(userId)>-1 || acl.read.deny.user.indexOf('all') > -1)) {
                         return false;
@@ -44,13 +45,12 @@ module.exports = {
                             return false;
                         }
                         
-                        if (acl.read.allow && acl.read.allow.role && _contains(rolesId, acl.read.deny.role)) {
+                        if (acl.read.allow && acl.read.allow.role && _contains(rolesId, acl.read.allow.role)) {
                             return true;
                         }
                     }
                 }
             }
-
             return false;
 
         }catch(err){                    
