@@ -16,15 +16,15 @@ module.exports = function() {
 
 	return {
 		
-		login: function(appId, username, password, accessList, isMasterKey, encryption_key) {
+		login: function(appId, email, password, accessList, isMasterKey, encryption_key) {
 			var deferred = q.defer();
-
+			console.log(email)
 			try{
 				global.customService.findOne(appId, Collections.User, {
-					username: username
+					email: email
 				},null,null,null,accessList,isMasterKey).then(function(user) {
 					if (!user) {
-						deferred.reject('Invalid Username');
+						deferred.reject('Invalid Email');
 						return;
 	                }
 
@@ -169,15 +169,15 @@ module.exports = function() {
 			return deferred.promise;
         },
         
-        resetUserPassword: function(appId, username, newPassword, resetKey, accessList, isMasterKey, encryption_key){
+        resetUserPassword: function(appId, email, newPassword, resetKey, accessList, isMasterKey, encryption_key){
             var deferred = q.defer();
 			
 			try{
 	            global.customService.findOne(appId, Collections.User, {
-					username: username
+					email: email
 				},null,null,null,accessList, true).then(function(user) {
 					if (!user) {
-						deferred.reject("User with username "+username+" not found.");
+						deferred.reject("User with email "+email+" not found.");
 						return;
 					}
 	                //Send an email to reset user password here. 
@@ -214,10 +214,10 @@ module.exports = function() {
 			var deferred = q.defer();
 			try{
 				global.customService.findOne(appId, Collections.User, {
-					username: document.username
+					email: document.email
 				},null,null,null,accessList, isMasterKey).then(function(user) {
 					if (user) {
-						deferred.reject('Username already exists');
+						deferred.reject('Email already exists');
 						return;
 					}
 

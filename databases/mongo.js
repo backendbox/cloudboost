@@ -530,12 +530,52 @@ module.exports = function() {
                 if (skip) {
                     skip = parseInt(skip);
                 }
-
+                
                 var collection = global.mongoClient.db(appId).collection(global.mongoUtil.collection.getId(appId, collectionName));
 
                 //delete $include and $includeList recursively
                 query = _sanitizeQuery(query);
-
+                
+                if (!isMasterKey) {
+                    //if its not master key then apply ACL.
+                    if (accessList.userId) {
+                        var acl_query = [
+                            {
+                                $or: [
+                                    {
+                                        "ACL.read.allow.user": 'all'
+                                    }, {
+                                        "ACL.read.allow.user": accessList.userId
+                                    }, {
+                                        "ACL.read.allow.role": {
+                                            $in: accessList.roles
+                                        }
+                                    }
+                                ]
+                            }, {
+                                $and: [
+                                    {
+                                        "ACL.read.deny.user": {
+                                            $ne: accessList.userId
+                                        }
+                                    }, {
+                                        "ACL.read.deny.role": {
+                                            $nin: accessList.roles
+                                        }
+                                    }
+                                ]
+                            }
+                        ];
+                        if (query.$and)
+                            query.$and.push({"$and": acl_query});
+                        else
+                            query.$and = acl_query;
+                        }
+                    else {
+                        query["ACL.read.allow.user"] = 'all';
+                    }
+                }
+                
                 var findQuery = collection.find(query);
                 if (skip) {
                     findQuery = findQuery.skip(skip);
