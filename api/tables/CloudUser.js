@@ -90,12 +90,13 @@ module.exports = function () {
                 }
 
                 //Make request
-                return global.userService.login(appId, document.username, document.password, customHelper.getAccessList(req), isMasterKey, application.keys.encryption_key);
+                return global.userService.login(appId, document.username, document.password, customHelper.getAccessList(req), true, application.keys.encryption_key);
             }).then(function (result) {
                 //create sessions
                 setSession(req, appId, sessionLength, result, res);
                 res.json(result);
             }, function (error) {
+                console.log(error)
                 res.status(401).json({ error: error });
             });
 

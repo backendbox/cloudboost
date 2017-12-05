@@ -290,7 +290,7 @@ module.exports = function() {
 				var sort=null;
 				var skip=null;							
 
-
+				
 				global.customService.findOne(appId, collectionName, query, select, sort, skip, accessList, isMasterKey)
 				.then(function(user) {
 					if (user) {

@@ -413,7 +413,6 @@ module.exports = function() {
                     mainPromise.reject("Database Not Connected");
                     return mainPromise.promise;
                 }
-
                 obj.document.find(appId, collectionName, query, select, sort, 1, skip, accessList, isMasterKey).then(function(list) {
                     if (Object.prototype.toString.call(list) === '[object Array]') {
                         if (list.length === 0) {
@@ -423,6 +422,9 @@ module.exports = function() {
                         }
                     }
                 }, function(error) {
+                    console.log('e')
+                    console.log(error)
+                    console.log('f')
                     global.winston.log('error', error);
                     mainPromise.reject(null);
                 });

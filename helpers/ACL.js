@@ -13,9 +13,6 @@ module.exports = {
     //@rolesId - Array of string - RoleId
     //ACL - ACL Object.
     isAllowedReadAccess : function (userId, rolesId, acl) {
-        console.log(userId + 'aaa')
-        console.log(rolesId + 'bbb')
-        console.log(JSON.stringify(acl) + 'ccc')
         try{
             if (acl) {
                 if (acl.read) {
