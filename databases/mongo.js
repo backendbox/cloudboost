@@ -225,7 +225,6 @@ module.exports = function() {
                     return deferred.promise;
                 }
 
-                console.log(query);
                 var collection = global.mongoClient.db(appId).collection(global.mongoUtil.collection.getId(appId, collectionName));
                 var include = [];
                 /*query for expires*/
@@ -422,9 +421,6 @@ module.exports = function() {
                         }
                     }
                 }, function(error) {
-                    console.log('e')
-                    console.log(error)
-                    console.log('f')
                     global.winston.log('error', error);
                     mainPromise.reject(null);
                 });
@@ -575,7 +571,7 @@ module.exports = function() {
                         query["ACL.read.allow.user"] = 'all';
                     }
                 }
-                
+
                 var findQuery = collection.find(query);
                 if (skip) {
                     findQuery = findQuery.skip(skip);

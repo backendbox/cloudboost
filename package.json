@@ -59,6 +59,7 @@
     "request": "^2.55.0",
     "should": "^4.6.5",
     "slack-node": "^0.1.8",
+    "snyk": "^1.49.4",
     "socket.io": "^2.0.4",
     "socket.io-redis": "^5.2.0",
     "underscore": "^1.7.0",
@@ -68,8 +69,7 @@
     "winston": "^1.1.2",
     "winston-bishop-slack": "^0.2.1",
     "winston-loggly": "^1.1.0",
-    "wns": "^0.5.3",
-    "snyk": "^1.49.4"
+    "wns": "^0.5.3"
   },
   "devDependencies": {
     "eslint": "^3.16.1",

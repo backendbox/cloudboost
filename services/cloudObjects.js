@@ -22,6 +22,7 @@ module.exports = function() {
             try {
                 if (opts && opts.ignoreSchema || collectionName === "_File") {
                     databaseDriver.find(appId, collectionName, query, select, sort, limit, skip, accessList, isMasterKey).then(function(doc) {
+
                         deferred.resolve(doc);
                     }, function(err) {
                         deferred.reject(err);
@@ -123,7 +124,7 @@ module.exports = function() {
 
         save: function(appId, collectionName, document, accessList, isMasterKey, opts, encryption_key) {
 
-            console.log("In Custom Save function");
+            // console.log("In Custom Save function");
             var deferred = global.q.defer();
 
             try {
@@ -135,7 +136,7 @@ module.exports = function() {
                     for (var i = 0; i < document.length; i++) {
                         document[i] = _checkIdList(document[i], reqType);
                         _generateId(document[i], reqType);
-                        console.log('Saving document...');
+                        // console.log('Saving document...');
                         promises.push(_save(appId, collectionName, document[i], accessList, isMasterKey, reqType, opts, encryption_key));
                     }
                     global.q.allSettled(promises).then(function(res) {
@@ -160,7 +161,7 @@ module.exports = function() {
                         }
                     });
                 } else {
-                    console.log('Saving document...');
+                    // console.log('Saving document...');
                     _save(appId, collectionName, document, accessList, isMasterKey, null, opts, encryption_key).then(function(res) {
                         deferred.resolve(res);
                     }, function(err) {
@@ -252,8 +253,7 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
 
     var deferred = q.defer();
     try {
-        console.log("DOCUMENT TO SAVE :");
-        console.log(document)
+        // console.log("DOCUMENT TO SAVE :");
         var docToSave = document;
 
         var promises = [];
@@ -272,16 +272,16 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
             document = _generateId(document, reqType);
         }
         var parentId = document._id;
-        console.log("Id Generated");
+        // console.log("Id Generated");
         document = _getModifiedDocs(document, unModDoc);
         if (document && Object.keys(document).length > 0) {
             customHelper.checkWriteAclAndUpdateVersion(appId, document, accessList, isMasterKey).then(function(listOfDocs) {
                 var obj = _seperateDocs(listOfDocs);
                 listOfDocs = obj.newDoc;
                 obj = obj.oldDoc;
-                console.log("ACL checked");
+                // console.log("ACL checked");
                 _validateSchema(appId, listOfDocs, accessList, isMasterKey, encryption_key).then(function(listOfDocs) {
-                    console.log("Schema checked");
+                    // console.log("Schema checked");
 
 
                     var mongoDocs = listOfDocs.map(function(doc){
@@ -293,8 +293,8 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
                         if (array[0].state === 'fulfilled') {
                             _sendNotification(appId, array[0], reqType);
                             unModDoc = _merge(parentId, array[0].value, unModDoc);
-                            console.log('SAVED Doc');
-                            console.log(unModDoc);
+                            // console.log('SAVED Doc');
+                            // console.log(unModDoc);
                             deferred.resolve(unModDoc);
                         } else {
                             _rollBack(appId, array, listOfDocs, obj).then(function(res) {
@@ -313,8 +313,8 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
                 deferred.reject("Unauthorized to modify");
             });
         } else {
-            console.log('SAVED Doc - Part B');
-            console.log(docToSave);
+            // console.log('SAVED Doc - Part B');
+            // console.log(docToSave);
             deferred.resolve(docToSave);
         }
 
@@ -415,7 +415,6 @@ function _sendNotification(appId, res, reqType) {
 var _isSchemaValid = function(appId, collectionName, document, accessList, isMasterKey, encryption_key) {
     var mainPromise = q.defer();
     var columnNotFound = false
-
     try {
         var promises = [];
         if (!document) {
@@ -494,16 +493,16 @@ var _isSchemaValid = function(appId, collectionName, document, accessList, isMas
                         temp[columns[i].name] = document[columns[i].name];
                     }
                     query.$or.push(temp);
-                    console.log('OR Query');
-                    console.log(query);
+                    // console.log('OR Query');
+                    // console.log(query);
                 }
             }
             if (query.$or.length > 0) {
                 var findPromise = q.defer();
                 promises.push(findPromise.promise);
                 global.mongoService.document.find(appId, collectionName, query, null, null, 9999999, 0, null, true).then(function(res) {
-                    console.log('Unique Result');
-                    console.log(res);
+                    // console.log('Unique Result');
+                    // console.log(res);
                     if (res.length === 1 && res[0]._id === document._id) {
                         findPromise.resolve('Update the document');
                     } else if (res.length > 0) {
@@ -581,6 +580,7 @@ var _isSchemaValid = function(appId, collectionName, document, accessList, isMas
                                     document[key]._id = objectId;
                                     document[key]._tableName = col.relatedTo;
                                     document[key]._type = _getTableType(col.relatedTo);
+
                                     continue;
                                 } else {
                                     mainPromise.reject("Invalid data in column " + key + ". It should be of type 'CloudObject' which belongs to table '" + col.relatedTo + "'");
@@ -667,7 +667,7 @@ var _isSchemaValid = function(appId, collectionName, document, accessList, isMas
                         createNewColumnPromise.reject("Error : Failed to update the table with the new column. ");
                     } else if (table) {
                         createNewColumnPromise.resolve();
-                        console.log("Column " + key + " created.");
+                        // console.log("Column " + key + " created.");
                     }
                 })
 
@@ -954,7 +954,6 @@ function _clone(document) {
 }
 
 function _getModifiedDocs(document, unModDoc) {
-
     try {
         var modifiedDocument = [];
         /* check for isModified with id so as to ensure that if document is modified or it is created
@@ -990,18 +989,19 @@ function _getModifiedDocs(document, unModDoc) {
                     if (document[key] !== null && document[key].constructor === Array && document[key].length > 0) {
                         if (document[key][0]._type && document[key][0]._tableName) {
                             var subDoc = [];
-
                             //get the unique objects
                             document[key] = _getUniqueObjects(document[key]);
 
-                            for (var i = 0; i < document[key].length; i++) {
-                                var temp = {};
-                                temp._type = document[key][i]._type;
-                                temp._tableName = document[key][i]._tableName;
-                                temp._id = document[key][i]._id;
-                                subDoc.push(temp);
-                            }
-                            doc[key] = subDoc;
+                            // for (var i = 0; i < document[key].length; i++) {
+                            //     var temp = {};
+                            //     temp._type = document[key][i]._type;
+                            //     temp._tableName = document[key][i]._tableName;
+                            //     temp._id = document[key][i]._id;
+                            //     temp._obj = JSON.stringify(document[key][i])
+                            //     subDoc.push(temp);
+                            // }
+                            // doc[key] = subDoc;
+                            doc[key] = document[key];
                         } else if (document[key][0]._type && document[key][0]._type === 'file') {
                             var subDoc = [];
                             for (var i = 0; i < document[key].length; i++) {
@@ -1017,10 +1017,11 @@ function _getModifiedDocs(document, unModDoc) {
                     } else if (document[key] !== null && document[key].constructor === Object) {
                         if (document[key]._type && document[key]._tableName) {
                             var subDoc = {};
-                            subDoc._type = document[key]._type;
-                            subDoc._tableName = document[key]._tableName;
-                            subDoc._id = document[key]._id;
-                            doc[key] = subDoc;
+                            // subDoc._type = document[key]._type;
+                            // subDoc._tableName = document[key]._tableName;
+                            // subDoc._id = document[key]._id;
+                            // doc[key] = subDoc;
+                            doc[key] = document[key];
                         } else if (document[key]._type && document[key]._type === 'file') {
                             var subDoc = {};
                             subDoc._type = document[key]._type;
