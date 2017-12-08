@@ -11,6 +11,7 @@ var q = require('q');
 var Collections = require('../database-connect/collections.js');
 var _ = require('underscore');
 var cipher_alg = 'aes-256-ctr';
+var async = require('async');
 
 module.exports = function() {
 
@@ -220,48 +221,135 @@ module.exports = function() {
 						deferred.reject('Email already exists');
 						return;
 					}
+					async.waterfall([
+						function (callback) {
+							global.customService.count(appId, Collections.User, {}, 10, 0, accessList, true).then(totalUser => {
+								if (totalUser > 0) {
+									callback(null, false)
+								} else {
+									callback(null, true)
+								}
+							}).catch(error => {
+								callback(error)
+							})
+						},
+					    function(isFirstUser, callback) {
+					    	// // Remove public ACL && Set Admin ACL
+							if (document.ACL.read.allow.user) {
+								document.ACL.read.allow.user = []
+							}
+							if (document.ACL.write.allow.user) {
+								document.ACL.write.allow.user = []
+							}
+							if(document.ACL.read.allow.role){
+								document.ACL.read.allow.role = []
+							}
+							if(document.ACL.write.allow.role){
+								document.ACL.write.allow.role = []
+							}
+							document.roles = []
+							// Find admin role list
+		        			global.customService.findOne(appId, Collections.Role, { name : Collections.adminRole }, null, null ,0, {}, true).then(role => {
+								if (role) {
+									document.ACL.read.allow.role.push(role._id)
+									document.ACL.write.allow.role.push(role._id)
+									if (isFirstUser) {
+										document.roles.push(role)
+										document._modifiedColumns.push('roles')
+									}
+									callback(null, document)
+								} else {
+									roleDocument = {}
+									roleDocument.ACL = {
+										read: {
+											allow: {
+												user: [],
+												role: []
+											}, 
+											deny: {
+												user: [],
+												role: []
+											}
+										}, 
+										write: {
+											allow: {
+												user: [],
+												role: []
+											}, 
+											deny: {
+												user: [],
+												role: []
+											}
+										}
+									}
+			    					roleDocument.name = Collections.adminRole
+			    					roleDocument._isModified = true
+			    					roleDocument._modifiedColumns = [ 'name', 'ACL' ]
+			    					roleDocument._tableName = 'Role'
+			    					roleDocument._type = 'role'
+					                global.customService.save(appId, Collections.Role, roleDocument, accessList, true, null, encryption_key).then(adminRole => {
+						               	document.ACL.read.allow.role.push(adminRole._id)
+										document.ACL.write.allow.role.push(adminRole._id)
+										if (isFirstUser) {
+											document.roles.push(adminRole)
+											document._modifiedColumns.push('roles')
+										}
+										callback(null, document)
+					                }).catch(error => {
+					                	callback(error)
+					                })
+								}
+		        			}).catch(error => {
+		        				callback(error)
+		        			})
+					    },
+					    function(document, callback) {
+							global.customService.save(appId, Collections.User, document, accessList, isMasterKey, null, encryption_key).then(user => {
+				                //Send an email to activate account. 
+			                    var cipher = crypto.createCipher('aes192', global.keys.secureKey);
+								var activateKey = cipher.update(user._id, 'utf8', 'hex');
+								activateKey += cipher.final('hex');
+			                                      
+								var promises=[];
+								promises.push(global.appService.getAllSettings(appId));
+								promises.push(global.mailService.sendSignupMail(appId, user, activateKey));
 
-	                global.customService.save(appId, Collections.User, document,accessList,isMasterKey, null, encryption_key).then(function(user) {
-						            
-		                //Send an email to activate account. 
-	                    var cipher = crypto.createCipher('aes192', global.keys.secureKey);
-						var activateKey = cipher.update(user._id, 'utf8', 'hex');
-						activateKey += cipher.final('hex');
-	                                      
-						var promises=[];
-						promises.push(global.appService.getAllSettings(appId));
-						promises.push(global.mailService.sendSignupMail(appId, user, activateKey));
+								q.all(promises).then(list => {
 
-						q.all(promises).then(function(list){
+				                   	var auth=_.first(_.where(list[0], {category: "auth"}));
+				                	var signupEmailSettingsFound=false;
+				                	var allowOnlyVerifiedLogins=false;
 
-		                   	var auth=_.first(_.where(list[0], {category: "auth"}));
-		                	var signupEmailSettingsFound=false;
-		                	var allowOnlyVerifiedLogins=false;
+				                	if(auth && auth.settings && auth.settings.signupEmail){
+				                		signupEmailSettingsFound=true;		                		
+				                		if(auth.settings.signupEmail.allowOnlyVerifiedLogins){		                			
+				                			allowOnlyVerifiedLogins=true;
+				                		}
+				                	}
+				                	
+			                		if(signupEmailSettingsFound && allowOnlyVerifiedLogins){
+				                		if(user.verified){
+				                			callback(null, user)
+				                		}else{
+				                			callback(null, null)
+				                		}
+				                	}else{
+				                		callback(null, user)
+				                	}		                	
 
-		                	if(auth && auth.settings && auth.settings.signupEmail){
-		                		signupEmailSettingsFound=true;		                		
-		                		if(auth.settings.signupEmail.allowOnlyVerifiedLogins){		                			
-		                			allowOnlyVerifiedLogins=true;
-		                		}
-		                	}
-		                	
-	                		if(signupEmailSettingsFound && allowOnlyVerifiedLogins){
-		                		if(user.verified){
-		                			deferred.resolve(user);
-		                		}else{
-		                			deferred.resolve(null);
-		                		}
-		                	}else{
-		                		deferred.resolve(user);
-		                	}		                	
-
-		                }, function(error){
-		                    deferred.reject(error);
-		                });
-
-
-					}, function(error) {
-						deferred.reject(error);
+				                }).catch(error => {
+				                    callback(error)
+				                });
+							}).catch(error => {
+								callback(error)
+							});
+					    }
+					], function (error, user) {
+						if (error) {
+							deferred.reject(error);
+						} else {
+							deferred.resolve(user);
+						}
 					});
 				}, function(error) {
 					deferred.reject(error);

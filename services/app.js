@@ -105,8 +105,8 @@ module.exports = function () {
 
                     if (res) {
                         res = JSON.parse(res);
-                        console.log('App found in Redis :');
-                        console.log(res);
+                        // console.log('App found in Redis :');
+                        // console.log(res);
                         deferred.resolve(res);
                     } else {
                         console.log('App not found in Redis. Retrieving from Storage.');

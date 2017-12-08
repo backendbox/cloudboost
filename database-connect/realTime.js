@@ -29,7 +29,7 @@ module.exports = function (io) {
             socket.on('join-custom-channel', function (data) {
                 try {
                     console.log('++++++++ Joined Realtime Channel+++++');
-                    console.log(data);
+                    // console.log(data);
                     socket.join(data);
 
                 } catch (e) {
@@ -54,7 +54,7 @@ module.exports = function (io) {
             socket.on('leave-custom-channel', function (data) {
                 try {
                     console.log('++++++++ Left Realtime Channel+++++');
-                    console.log(data);
+                    // console.log(data);
                     socket.leave(data);
                 } catch (e) {
                     global.winston.log('error', {
@@ -67,7 +67,7 @@ module.exports = function (io) {
             socket.on('publish-custom-channel', function (data) {
                 try {
                     console.log('++++++++ Publish Realtime Channel+++++');
-                    console.log(data);
+                    // console.log(data);
                     //if this doucment is an instance of a table Object.
                     var roomSockets = io.to(data.channel);
                     var sockets = roomSockets.sockets;
@@ -94,7 +94,7 @@ module.exports = function (io) {
             socket.on('join-object-channel', function (data) {
                 try {
                     console.log('++++++++ Joined Object Realtime Channel+++++');
-                    console.log(data);
+                    // console.log(data);
 
                     if (typeof data === 'string') { // Backward Compatibility : data only has the room id
                         socket.join(data);
@@ -121,7 +121,7 @@ module.exports = function (io) {
             socket.on('leave-object-channel', function (data) {
                 try {
                     console.log('++++++++ Leave Object Realtime Channel+++++');
-                    console.log(data);
+                    // console.log(data);
                     // build socketid specefic to table
                     var tableSocketId = socket.id + data.event
                     global.socketQueryHelper.getData(tableSocketId, data.eventType, function (err, socketData) {
@@ -167,7 +167,7 @@ module.exports = function (io) {
             if (document && document._tableName) {
                 console.log('++++++++ Sending Realtime Object Notification+++++');
                 console.log(eventType + ' event');
-                console.log(document);
+                // console.log(document);
                 //if this doucment is an instance of a table Object.
                 var roomSockets = io.to(appId.toLowerCase() + 'table' + document._tableName.toLowerCase() + eventType.toLowerCase());
                 var sockets = roomSockets.sockets;
@@ -231,18 +231,18 @@ function _sendNotification(appId, document, socket, eventType) {
                 if (socketQueryValidate) {
                     // check if public access is enabled or the current session user is allowed
                     if (global.aclHelper.isAllowedReadAccess(session.userId, session.roles, document.ACL)) {
-                        console.log(appId.toLowerCase() + 'table' + document._tableName.toLowerCase() + eventType.toLowerCase() + socketData.timestamp)
+                        // console.log(appId.toLowerCase() + 'table' + document._tableName.toLowerCase() + eventType.toLowerCase() + socketData.timestamp)
                         socket.emit(appId.toLowerCase() + 'table' + document._tableName.toLowerCase() + eventType.toLowerCase() + socketData.timestamp, JSON.stringify(document));
-                        console.log("Socket Emited.", document);
+                        // console.log("Socket Emited.", document);
                         deferred.resolve();
                     } else {
                         // if no access then only emit if listen is using master key
                         if (socketData.appKey) {
                             global.appService.isMasterKey(appId, socketData.appKey).then(( isMaster ) => {
                                 if(isMaster){
-                                    console.log(appId.toLowerCase() + 'table' + document._tableName.toLowerCase() + eventType.toLowerCase() + socketData.timestamp)
+                                    // console.log(appId.toLowerCase() + 'table' + document._tableName.toLowerCase() + eventType.toLowerCase() + socketData.timestamp)
                                     socket.emit(appId.toLowerCase() + 'table' + document._tableName.toLowerCase() + eventType.toLowerCase() + socketData.timestamp, JSON.stringify(document));
-                                    console.log("Socket Emited.", document);
+                                    // console.log("Socket Emited.", document);
                                 }
                                 deferred.resolve();
                             })

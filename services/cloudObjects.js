@@ -271,6 +271,7 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
 
             document = _generateId(document, reqType);
         }
+
         var parentId = document._id;
         // console.log("Id Generated");
         document = _getModifiedDocs(document, unModDoc);
@@ -279,11 +280,9 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
                 var obj = _seperateDocs(listOfDocs);
                 listOfDocs = obj.newDoc;
                 obj = obj.oldDoc;
-                // console.log("ACL checked");
+                console.log("ACL checked");
                 _validateSchema(appId, listOfDocs, accessList, isMasterKey, encryption_key).then(function(listOfDocs) {
-                    // console.log("Schema checked");
-
-
+                    console.log("Schema checked A");
                     var mongoDocs = listOfDocs.map(function(doc){
                         return Object.assign({},doc)
                     })
@@ -313,7 +312,7 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
                 deferred.reject("Unauthorized to modify");
             });
         } else {
-            // console.log('SAVED Doc - Part B');
+            console.log('SAVED Doc - Part B');
             // console.log(docToSave);
             deferred.resolve(docToSave);
         }
@@ -989,19 +988,22 @@ function _getModifiedDocs(document, unModDoc) {
                     if (document[key] !== null && document[key].constructor === Array && document[key].length > 0) {
                         if (document[key][0]._type && document[key][0]._tableName) {
                             var subDoc = [];
+                            var listToModify = ["Role", "User", "Device"]
                             //get the unique objects
                             document[key] = _getUniqueObjects(document[key]);
-
-                            // for (var i = 0; i < document[key].length; i++) {
-                            //     var temp = {};
-                            //     temp._type = document[key][i]._type;
-                            //     temp._tableName = document[key][i]._tableName;
-                            //     temp._id = document[key][i]._id;
-                            //     temp._obj = JSON.stringify(document[key][i])
-                            //     subDoc.push(temp);
-                            // }
-                            // doc[key] = subDoc;
-                            doc[key] = document[key];
+                            console.log(document[key]._tableName)
+                            if (listToModify.indexOf(document[key]._tableName)) {
+                                for (var i = 0; i < document[key].length; i++) {
+                                    var temp = {};
+                                    temp._type = document[key][i]._type;
+                                    temp._tableName = document[key][i]._tableName;
+                                    temp._id = document[key][i]._id;
+                                    subDoc.push(temp);
+                                }
+                                doc[key] = subDoc;
+                            } else {
+                                doc[key] = document[key];
+                            }
                         } else if (document[key][0]._type && document[key][0]._type === 'file') {
                             var subDoc = [];
                             for (var i = 0; i < document[key].length; i++) {
@@ -1017,11 +1019,15 @@ function _getModifiedDocs(document, unModDoc) {
                     } else if (document[key] !== null && document[key].constructor === Object) {
                         if (document[key]._type && document[key]._tableName) {
                             var subDoc = {};
-                            // subDoc._type = document[key]._type;
-                            // subDoc._tableName = document[key]._tableName;
-                            // subDoc._id = document[key]._id;
-                            // doc[key] = subDoc;
-                            doc[key] = document[key];
+                            var listToModify = ["Role", "User", "Device"]
+                            if (listToModify.indexOf(document[key]._tableName)) {
+                                subDoc._type = document[key]._type;
+                                subDoc._tableName = document[key]._tableName;
+                                subDoc._id = document[key]._id;
+                                doc[key] = subDoc;
+                            } else {
+                                doc[key] = document[key];
+                            }
                         } else if (document[key]._type && document[key]._type === 'file') {
                             var subDoc = {};
                             subDoc._type = document[key]._type;

@@ -32,12 +32,12 @@ module.exports = function() {
                 return global.customService.save(appId, collectionName, document, customHelper.getAccessList(req), isMasterKey);
             }).then(function(result) {
                 console.log('+++ Save Success +++');
-                console.log(result);
+                // console.log(result);
                 integrationService.integrationNotification(appId, document, collectionName, table_event);
                 res.status(200).send(result);
             }, function(error) {
                 console.log('++++++ Save Error +++++++');
-                console.log(error);
+                // console.log(error);
                 res.status(400).send(error);
             });
 

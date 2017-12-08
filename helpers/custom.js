@@ -10,7 +10,6 @@ module.exports = {
     getAccessList : function(req){
 
         //req is a http request object.
-
         try{
             var accessList = {};
 

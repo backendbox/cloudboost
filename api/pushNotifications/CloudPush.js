@@ -68,7 +68,7 @@ module.exports = function() {
                 return global.pushService.upsertDevice(appId, collectionName, document, customHelper.getAccessList(req), isMasterKey);
             }).then(function (result) {
                 console.log('+++ Save Success +++');
-                console.log(result);
+                // console.log(result);
                 res.status(200).send(result);
             }, function (error) {
                 console.log('++++++ Save Error +++++++');

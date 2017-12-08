@@ -38,6 +38,7 @@ module.exports = function () {
         var select = {};
         var sort = {};
         var skip = 0;
+        var sessionLength = 30; //Default
 
         var query = {};
         query.$include = [];
@@ -47,6 +48,7 @@ module.exports = function () {
         global.appService.isMasterKey(appId, appKey).then(function (isMasterKey) {
             return global.customService.findOne(appId, collectionName, query, select, sort, skip, accessList, isMasterKey);
         }).then(function (result) {
+            setSession(req, appId, sessionLength, result, res);
             res.json(result);
         }, function (error) {
             res.status(400).send(error);

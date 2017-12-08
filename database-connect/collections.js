@@ -10,5 +10,7 @@ module.exports = {
 	Schema: 'Schema',
 	Role: 'Role',
 	User: 'User',
-	Device: 'Device'
+	Device: 'Device',
+	adminRole: 'Admin',
+	guestRole: 'Guest'
 };
