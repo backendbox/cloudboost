@@ -19,7 +19,6 @@ module.exports = function() {
 		
 		login: function(appId, email, password, accessList, isMasterKey, encryption_key) {
 			var deferred = q.defer();
-			console.log(email)
 			try{
 				global.customService.findOne(appId, Collections.User, {
 					email: email
@@ -294,7 +293,11 @@ module.exports = function() {
 											document.roles.push(adminRole)
 											document._modifiedColumns.push('roles')
 										}
-										callback(null, document)
+										global.appService.getApp(appId, true).then(application => {
+											callback(null, document)
+										}).catch(error => {
+											callback(error)
+										})
 					                }).catch(error => {
 					                	callback(error)
 					                })
@@ -304,8 +307,9 @@ module.exports = function() {
 		        			})
 					    },
 					    function(document, callback) {
-							global.customService.save(appId, Collections.User, document, accessList, isMasterKey, null, encryption_key).then(user => {
-				                //Send an email to activate account. 
+					    	console.log(document)
+							global.customService.save(appId, Collections.User, document, accessList, true, null, encryption_key).then(user => {
+				                //Send an email to activate account. Truong Vo
 			                    var cipher = crypto.createCipher('aes192', global.keys.secureKey);
 								var activateKey = cipher.update(user._id, 'utf8', 'hex');
 								activateKey += cipher.final('hex');
@@ -343,6 +347,15 @@ module.exports = function() {
 							}).catch(error => {
 								callback(error)
 							});
+					    },
+					    function (user, callback) {
+					    	user.ACL.read.allow.user.push(user._id)
+					    	user._modifiedColumns = ["ACL"]
+					    	user._isModified = true
+							global.customService.save(appId, Collections.User, user, accessList, true, null, encryption_key).then(user => {
+								console.log(user)
+							})
+					    	callback(null, user)
 					    }
 					], function (error, user) {
 						if (error) {

@@ -10,6 +10,8 @@ var _ = require('underscore');
 var crypto = require('crypto');
 var customHelper = require('../helpers/custom.js');
 var type = require("../helpers/dataType");
+var Collections = require('../database-connect/collections.js'); // Truong Vo
+var async = require('async');
 
 var databaseDriver = global.mongoService.document;
 module.exports = function() {
@@ -275,48 +277,87 @@ function _save(appId, collectionName, document, accessList, isMasterKey, reqType
         var parentId = document._id;
         // console.log("Id Generated");
         document = _getModifiedDocs(document, unModDoc);
-        if (document && Object.keys(document).length > 0) {
-            customHelper.checkWriteAclAndUpdateVersion(appId, document, accessList, isMasterKey).then(function(listOfDocs) {
-                var obj = _seperateDocs(listOfDocs);
-                listOfDocs = obj.newDoc;
-                obj = obj.oldDoc;
-                console.log("ACL checked");
-                _validateSchema(appId, listOfDocs, accessList, isMasterKey, encryption_key).then(function(listOfDocs) {
-                    console.log("Schema checked A");
-                    var mongoDocs = listOfDocs.map(function(doc){
-                        return Object.assign({},doc)
+        // Truong Vo - Restrict public key to save some table
+        async.waterfall([
+            function (callback) {
+                var tableRestrictedList = Collections.tableRestrictedList
+                if (isMasterKey) {
+                    global.appService.getApp(appId).then(application => {
+                        callback(null, application)
+                    }).catch(error => {
+                        deferred.reject(error)
                     })
-
-                    promises.push(databaseDriver.save(appId, mongoDocs));
-                    global.q.allSettled(promises).then(function(array) {
-                        if (array[0].state === 'fulfilled') {
-                            _sendNotification(appId, array[0], reqType);
-                            unModDoc = _merge(parentId, array[0].value, unModDoc);
-                            // console.log('SAVED Doc');
-                            // console.log(unModDoc);
-                            deferred.resolve(unModDoc);
-                        } else {
-                            _rollBack(appId, array, listOfDocs, obj).then(function(res) {
-                                global.winston.log('error', res);
-                                deferred.reject("Unable to Save the document at this time");
-                            }, function(err) {
-                                global.winston.log('error', err);
-                                deferred.reject(err);
-                            });
+                } else {
+                    global.appService.getApp(appId).then(application => {
+                        if (application.publicRight && !application.publicRight.write && !accessList.userId) {
+                            deferred.reject('Blocked !')
                         }
-                    });
-                }, function(err) {
-                    deferred.reject(err);
-                });
-            }, function(err) {
-                deferred.reject("Unauthorized to modify");
-            });
-        } else {
-            console.log('SAVED Doc - Part B');
-            // console.log(docToSave);
-            deferred.resolve(docToSave);
-        }
+                        if (application.adminRole && _checkRestrictedTable(document, tableRestrictedList)) {
+                            if (accessList.roles && accessList.roles.indexOf(application.adminRole._id) >= 0) {
+                                callback(null, application)
+                            } else {
+                                deferred.reject('Only admin have right to do this !')
+                            }
+                        } else {
+                            callback(null, application)
+                        }
+                    }).catch(error => {
+                        deferred.reject(error)
+                    })
+                }
 
+            },
+            function(application, callback) {
+                if (document && Object.keys(document).length > 0) {
+                    customHelper.checkWriteAclAndUpdateVersion(appId, document, accessList, isMasterKey).then(listOfDocs => {
+                        var obj = _seperateDocs(listOfDocs);
+                        listOfDocs = obj.newDoc;
+                        obj = obj.oldDoc;
+                        if (application !== null) {
+                            var appendACL = []
+                            if (application.adminRole) {
+                                appendACL.push(application.adminRole)
+                            }
+                            listOfDocs = _updateACL(listOfDocs, appendACL) // Truong Vo, Update Default ACL, Set Admin as ACL
+                        }
+                        _validateSchema(appId, listOfDocs, accessList, isMasterKey, encryption_key).then(listOfDocs => {
+                            console.log("Schema checked A");
+                            var mongoDocs = listOfDocs.map(function(doc){
+                                return Object.assign({},doc)
+                            })
+
+                            promises.push(databaseDriver.save(appId, mongoDocs));
+                            global.q.allSettled(promises).then(array => {
+                                if (array[0].state === 'fulfilled') {
+                                    _sendNotification(appId, array[0], reqType);
+                                    unModDoc = _merge(parentId, array[0].value, unModDoc);
+                                    // console.log('SAVED Doc');
+                                    // console.log(unModDoc);
+                                    deferred.resolve(unModDoc);
+                                } else {
+                                    _rollBack(appId, array, listOfDocs, obj).then(function(res) {
+                                        global.winston.log('error', res);
+                                        deferred.reject("Unable to Save the document at this time");
+                                    }, function(err) {
+                                        global.winston.log('error', err);
+                                        deferred.reject(err);
+                                    });
+                                }
+                            });
+                        }).catch(err => {
+                            deferred.reject(err);
+                        });
+                    }).catch(err => {
+                        console.log('hello')
+                        deferred.reject('Unauthorized to modify');
+                    });
+                } else {
+                    console.log('SAVED Doc - Part B');
+                    // console.log(docToSave);
+                    deferred.resolve(docToSave);
+                }
+            }
+        ]);
     } catch (err) {
         global.winston.log('error', {
             "error": String(err),
@@ -988,7 +1029,7 @@ function _getModifiedDocs(document, unModDoc) {
                     if (document[key] !== null && document[key].constructor === Array && document[key].length > 0) {
                         if (document[key][0]._type && document[key][0]._tableName) {
                             var subDoc = [];
-                            var listToModify = ["Role", "User", "Device"]
+                            var listToModify = Collections.listToModifyColumns // Truong Vo
                             //get the unique objects
                             document[key] = _getUniqueObjects(document[key]);
                             console.log(document[key]._tableName)
@@ -1019,7 +1060,7 @@ function _getModifiedDocs(document, unModDoc) {
                     } else if (document[key] !== null && document[key].constructor === Object) {
                         if (document[key]._type && document[key]._tableName) {
                             var subDoc = {};
-                            var listToModify = ["Role", "User", "Device"]
+                            var listToModify = Collections.listToModifyColumns // Truong Vo
                             if (listToModify.indexOf(document[key]._tableName)) {
                                 subDoc._type = document[key]._type;
                                 subDoc._tableName = document[key]._tableName;
@@ -1534,7 +1575,45 @@ function _mongoRevert(appId, status, docsArray, oldDocs) {
     }
     return deferred.promise;
 }
+function _checkRestrictedTable (docs, listOfRestrictedTable) {
+    var status = false;
+    if (Object.prototype.toString.call(docs) === '[object Array]') {
+        for (var i = docs.length - 1; i >= 0; i--) {
+            if (listOfRestrictedTable.indexOf(docs[i]._tableName) >= 0) {
+                return true
+            }
+        }
+    } else {
+        if (listOfRestrictedTable.indexOf(docs._tableName) >= 0) {
+            return true
+        }
+    }
+    return status;
+}
+function _updateACL (listOfDocs, appendACL) {
+    try {
+        for (var i = listOfDocs.length - 1; i >= 0; i--) {
+            if (Object.prototype.toString.call(appendACL) === '[object Array]') {
+                console.log(appendACL)
+                for (var y = appendACL.length - 1; y >= 0; y--) {
+                    console.log(appendACL[y])
+                    if (appendACL[y]._type === 'role') {
+                        listOfDocs[i].ACL.read.allow.role.push(appendACL[y]._id)
+                        listOfDocs[i].ACL.write.allow.role.push(appendACL[y]._id)
+                    } else if (appendACL[y]._type === 'user') {
+                        listOfDocs[i].ACL.read.allow.user.push(appendACL[y]._id)
+                        // listOfDocs[i].ACL.read.write.user.push(appendACL[y]._id)
+                    }
+                }
+                listOfDocs[i]._modifiedColumns.push('ACL')
+            }
+        }
+        return listOfDocs;
 
+    } catch (err) {
+        return null;
+    }
+}
 function _seperateDocs(listOfDocs) {
     try {
         var newDoc = [];

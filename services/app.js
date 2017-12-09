@@ -95,7 +95,7 @@ module.exports = function () {
             return deferred.promise;
         },
 
-        getApp: function (appId) {
+        getApp: function (appId, fetch = false) {
             var deferred = q.defer();
 
             try {
@@ -103,7 +103,7 @@ module.exports = function () {
                 console.log('+++++ Redis Get App +++++++');
                 global.redisClient.get(global.keys.cacheAppPrefix + ':' + appId, function (err, res) {
 
-                    if (res) {
+                    if (res && !fetch) {
                         res = JSON.parse(res);
                         // console.log('App found in Redis :');
                         // console.log(res);
@@ -122,8 +122,24 @@ module.exports = function () {
                                 deferred.reject("App Not found");
                             } else if (docs.length > 0) {
                                 console.log('Redis App SET');
-                                global.redisClient.setex(global.keys.cacheAppPrefix + ':' + appId, global.keys.appExpirationTimeFromCache, JSON.stringify(docs[0]));
-                                deferred.resolve(docs[0]);
+                                var appIdDb = global.mongoClient.db(appId);
+                                var findAdminRole = appIdDb.collection(Collections.Role).find({ name: Collections.adminRole });
+                                findAdminRole.toArray(function (err, adminRoles) {
+                                    if (err) {
+                                        deferred.reject(err);
+                                    }
+                                    docs[0].adminRole = _removeDefaultColumnsObject(adminRoles[0])
+                                    var findAppSetting = appIdDb.collection(Collections.Settings).find({}).limit(100);
+                                    findAppSetting.toArray(function (err, settings) {
+                                        if (err) {
+                                            deferred.reject(err);
+                                        }
+                                        docs[0].settings = _removeDefaultColumnsObject(settings)
+                                        global.redisClient.setex(global.keys.cacheAppPrefix + ':' + appId, global.keys.appExpirationTimeFromCache, JSON.stringify(docs[0]));
+                                        deferred.resolve(docs[0]);
+                                    })
+                                })
+                                
                             }
                         });
                     }
@@ -845,6 +861,7 @@ module.exports = function () {
                 global.appService.upsertTable(appId, 'Role', tablesData.Role),
                 global.appService.upsertTable(appId, 'Device', tablesData.Device),
                 global.appService.upsertTable(appId, 'User', tablesData.User),
+                global.appService.upsertTable(appId, 'Settings', tablesData.Settings),
                 global.appService.upsertTable(appId, '_File', tablesData._File),
                 global.appService.upsertTable(appId, '_Event', tablesData._Event),
                 global.appService.upsertTable(appId, '_Funnel', tablesData._Funnel)
@@ -1591,7 +1608,25 @@ function _getColumnsToAdd(oldColumns, newColumns) {
         return null;
     }
 }
-
+function _removeDefaultColumnsObject (obj) {
+    var listDefaultColumns = Collections.listDefaultColumns
+    if (Object.prototype.toString.call(obj) === '[object Array]') {
+        for (var i = obj.length - 1; i >= 0; i--) {
+            for (key in obj[i]) {
+                if (listDefaultColumns.indexOf(key) >= 0) {
+                    delete obj[i][key]
+                }
+            }
+        }
+    } else {
+        for (key in obj) {
+            if (listDefaultColumns.indexOf(key) >= 0) {
+                delete obj[key]
+            }
+        }
+    }
+    return obj;
+}
 function _getDefaultColumnWithDataType(type) {
 
     try {

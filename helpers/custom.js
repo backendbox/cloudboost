@@ -4,9 +4,26 @@
 #     (c) 2014 HackerBay, Inc. 
 #     CloudBoost may be freely distributed under the Apache 2 License
 */
+var Collections = require('../database-connect/collections.js'); // Truong Vo
 
 module.exports = {
-    
+    checkIfUserIsAdmin : function (appId, accessList) {
+        var deferred = global.q.defer();
+        try{
+            global.mongoService.document.findOne(appId, Collections.Role, { name: Collections.adminRole }, null, null, 0, {}, true).then(adminRole => {
+                if (accessList.roles.indexOf(adminRole._id) >= 0) {
+                    deferred.resolve(true)
+                } else {
+                    deferred.resolve(false)
+                }   
+            }).catch(err => {
+                deferred.reject(err)
+            });
+        }catch(err){   
+            deferred.reject(err)            
+        }
+        return deferred.promise;
+    },
     getAccessList : function(req){
 
         //req is a http request object.
@@ -91,8 +108,7 @@ module.exports = {
             global.winston.log('error',{"error":String(err),"stack": new Error().stack});                                                              
         }
     },
-
-     verifyWriteACLAndUpdateVersion : function(appId,collectionName,document,accessList,isMasterKey){
+    verifyWriteACLAndUpdateVersion : function(appId,collectionName,document,accessList,isMasterKey){
         var deferred = global.q.defer();
 
         try{
@@ -171,7 +187,6 @@ module.exports = {
             deferred.reject(err);                                                  
         }
         return deferred.promise;
-
-     }
+    }
 
 };

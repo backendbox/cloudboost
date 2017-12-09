@@ -11,6 +11,11 @@ module.exports = {
 	Role: 'Role',
 	User: 'User',
 	Device: 'Device',
+	Settings: 'Settings',
 	adminRole: 'Admin',
-	guestRole: 'Guest'
+	guestRole: 'Guest',
+	tableRestrictedList: ["Role", "User", "Device", "Settings"],
+	listToModifyColumns: ["Role", "User", "Device", "Settings"],
+	listDefaultColumns: ["ACL", "expires", "updatedAt", "createdAt", "_version"],
+	tableToChangeAppCache: ["Role", "Settings"]
 };

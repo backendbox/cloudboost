@@ -3,6 +3,7 @@
 #     (c) 2014 HackerBay, Inc.
 #     CloudBoost may be freely distributed under the Apache 2 License
 */
+var Collections = require('./collections.js'); // Truong Vo
 
 module.exports = function (io) {
 
@@ -165,6 +166,15 @@ module.exports = function (io) {
         try {
             //event type can be created, updated, deleted.
             if (document && document._tableName) {
+                // Truong Vo - Update App Cache When System Table Change
+                console.log('+++++++++++ Fetch App Setting +++++++++++')
+                if (Collections.tableToChangeAppCache.indexOf(document._tableName) >= 0){
+                    global.appService.getApp(appId, true).then(application => {
+                        console.log("App Setting Updated")
+                    }).catch(error => {
+                        console.log(error)
+                    })
+                }
                 console.log('++++++++ Sending Realtime Object Notification+++++');
                 console.log(eventType + ' event');
                 // console.log(document);
