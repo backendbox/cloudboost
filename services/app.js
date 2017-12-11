@@ -1609,18 +1609,18 @@ function _getColumnsToAdd(oldColumns, newColumns) {
     }
 }
 function _removeDefaultColumnsObject (obj) {
-    var listDefaultColumns = Collections.listDefaultColumns
+    var listRemoveSubItemColumns = Collections.listRemoveSubItemColumns
     if (Object.prototype.toString.call(obj) === '[object Array]') {
         for (var i = obj.length - 1; i >= 0; i--) {
             for (key in obj[i]) {
-                if (listDefaultColumns.indexOf(key) >= 0) {
+                if (key && listRemoveSubItemColumns.indexOf(key) >= 0) {
                     delete obj[i][key]
                 }
             }
         }
     } else {
         for (key in obj) {
-            if (listDefaultColumns.indexOf(key) >= 0) {
+            if (key && listRemoveSubItemColumns.indexOf(key) >= 0) {
                 delete obj[key]
             }
         }

@@ -252,7 +252,6 @@ module.exports = function() {
 };
 
 function _save(appId, collectionName, document, accessList, isMasterKey, reqType, opts, encryption_key) {
-
     var deferred = q.defer();
     try {
         // console.log("DOCUMENT TO SAVE :");
@@ -1020,6 +1019,9 @@ function _getModifiedDocs(document, unModDoc) {
 
             doc = {};
 
+            var listToModify = Collections.listToModifyColumns // Truong Vo
+            var listRemoveSubItemColumns = Collections.listRemoveSubItemColumns // Truong Vo
+
             for (var key in document) {
                 //Push in the basic fields as they are not there in Modified Array
                 if (key === '_id' || key === '_type' || key === '_tableName' || key === '_isModified' || key === '_modifiedColumns') {
@@ -1029,11 +1031,9 @@ function _getModifiedDocs(document, unModDoc) {
                     if (document[key] !== null && document[key].constructor === Array && document[key].length > 0) {
                         if (document[key][0]._type && document[key][0]._tableName) {
                             var subDoc = [];
-                            var listToModify = Collections.listToModifyColumns // Truong Vo
                             //get the unique objects
                             document[key] = _getUniqueObjects(document[key]);
-                            console.log(document[key]._tableName)
-                            if (listToModify.indexOf(document[key]._tableName)) {
+                            if (listToModify.indexOf(document[key]._tableName) >= 0) {
                                 for (var i = 0; i < document[key].length; i++) {
                                     var temp = {};
                                     temp._type = document[key][i]._type;
@@ -1043,7 +1043,16 @@ function _getModifiedDocs(document, unModDoc) {
                                 }
                                 doc[key] = subDoc;
                             } else {
-                                doc[key] = document[key];
+                                for (var i = 0; i < document[key].length; i++) {
+                                    var temp = {};
+                                    for (subkey in document[key][i]) {
+                                        if (listRemoveSubItemColumns.indexOf(subkey) === -1) {
+                                            temp[subkey] = document[key][i][subkey]
+                                        }
+                                    }
+                                    subDoc.push(temp);
+                                }
+                                doc[key] = subDoc;
                             }
                         } else if (document[key][0]._type && document[key][0]._type === 'file') {
                             var subDoc = [];
@@ -1060,14 +1069,18 @@ function _getModifiedDocs(document, unModDoc) {
                     } else if (document[key] !== null && document[key].constructor === Object) {
                         if (document[key]._type && document[key]._tableName) {
                             var subDoc = {};
-                            var listToModify = Collections.listToModifyColumns // Truong Vo
-                            if (listToModify.indexOf(document[key]._tableName)) {
+                            if (listToModify.indexOf(document[key]._tableName) >= 0) {
                                 subDoc._type = document[key]._type;
                                 subDoc._tableName = document[key]._tableName;
                                 subDoc._id = document[key]._id;
                                 doc[key] = subDoc;
                             } else {
-                                doc[key] = document[key];
+                                for (subkey in document[key]){
+                                    if (listRemoveSubItemColumns.indexOf(subkey) === -1) {
+                                        subDoc[subkey] = document[key][subkey]
+                                    }
+                                }
+                                doc[key] = subDoc;
                             }
                         } else if (document[key]._type && document[key]._type === 'file') {
                             var subDoc = {};
@@ -1598,8 +1611,12 @@ function _updateACL (listOfDocs, appendACL) {
                 for (var y = appendACL.length - 1; y >= 0; y--) {
                     console.log(appendACL[y])
                     if (appendACL[y]._type === 'role') {
-                        listOfDocs[i].ACL.read.allow.role.push(appendACL[y]._id)
-                        listOfDocs[i].ACL.write.allow.role.push(appendACL[y]._id)
+                        if (listOfDocs[i].ACL.read.allow.role.indexOf(appendACL[y]._id) === -1) {
+                            listOfDocs[i].ACL.read.allow.role.push(appendACL[y]._id)
+                        }
+                        if (listOfDocs[i].ACL.write.allow.role.indexOf(appendACL[y]._id) === -1) {
+                            listOfDocs[i].ACL.write.allow.role.push(appendACL[y]._id)
+                        }
                     } else if (appendACL[y]._type === 'user') {
                         listOfDocs[i].ACL.read.allow.user.push(appendACL[y]._id)
                         // listOfDocs[i].ACL.read.write.user.push(appendACL[y]._id)

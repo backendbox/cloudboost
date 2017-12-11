@@ -19,6 +19,7 @@ module.exports = function (){
         analyticsKey : "109eb359-3d22-4165-9e21-21439637f975",
         logToken : "8939ac60-d759-49ce-852a-95467be01d37",
         logglySubDomain : "backendbox",
-        slackWebHook : process.env['SLACK_WEBHOOK']
+        slackWebHook : process.env['SLACK_WEBHOOK'],
+        myURL: 'https://api.easyoncloud.com'
     };
 };

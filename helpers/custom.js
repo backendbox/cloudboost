@@ -32,6 +32,7 @@ module.exports = {
 
             if(!req || !req.session)
                 return accessList;
+
             if(req.session.userId){
                 accessList.userId = req.session.userId;
             }

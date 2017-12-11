@@ -6,6 +6,7 @@
 
 var q = require("q");
 var customHelper = require('../../helpers/custom.js');
+var async = require('async')
 
 module.exports = function() {
 
@@ -101,46 +102,65 @@ function _getFile(req, res) {
     var cropY = req.query.cropY;
     var cropW = req.query.cropW;
     var cropH = req.query.cropH;
-
     if (!fileId) {
         return res.status(400).send("File ID is Required");
     }
-    global.appService.isMasterKey(appId, appKey).then(function(isMasterKey) {
-        global.fileService.getFile(appId, fileId, customHelper.getAccessList(req), isMasterKey).then(function(file) {
+    async.waterfall([
+      function(callback){
+          if (req.query.token) {
+            global.sessionHelper.getSession(req.query.token, function(err, session) {
+                if (err) {
+                    callback(null, {})
+                } else {
+                   var accessList = {}
+                   accessList.userId = session.userId;
+                   accessList.roles = session.roles
+                   callback(null, accessList)
+                }
+            }.bind(callback));
+          } else {
+            callback(null, {})
+          }
+      },
+      function(accessList, callback){
+        global.appService.isMasterKey(appId, appKey).then(function(isMasterKey) {
+            global.fileService.getFile(appId, fileId, accessList, isMasterKey).then(file => {
 
-            if (typeof resizeWidth === 'undefined' && typeof resizeHeight === 'undefined' && typeof quality === 'undefined' && typeof opacity === 'undefined' && typeof scale === 'undefined' && typeof containWidth === 'undefined' && typeof containHeight === 'undefined' && typeof rDegs === 'undefined' && typeof bSigma === 'undefined') {
+                if (typeof resizeWidth === 'undefined' && typeof resizeHeight === 'undefined' && typeof quality === 'undefined' && typeof opacity === 'undefined' && typeof scale === 'undefined' && typeof containWidth === 'undefined' && typeof containHeight === 'undefined' && typeof rDegs === 'undefined' && typeof bSigma === 'undefined') {
 
-                var fileStream = global.mongoService.document.getFileStreamById(appId, file._id);
+                    var fileStream = global.mongoService.document.getFileStreamById(appId, file._id);
 
-                res.set('Content-Type', file.contentType);
-                res.set('Content-Disposition', 'inline; filename="' + file.filename + '"');
+                    res.set('Content-Type', file.contentType);
+                    res.set('Content-Disposition', 'inline; filename="' + file.filename + '"');
 
-                fileStream.on("error", function(err) {
-                    res.send(500, "Got error while processing stream " + err.message);
-                    res.end();
-                });
+                    fileStream.on("error", function(err) {
+                        res.send(500, "Got error while processing stream " + err.message);
+                        res.end();
+                    });
 
-                fileStream.on('end', function() {
-                    res.end();
-                });
+                    fileStream.on('end', function() {
+                        res.end();
+                    });
 
-                fileStream.pipe(res);
+                    fileStream.pipe(res);
 
-            } else {
-                console.log('+++++ Proccesing Image ++++++++');
-                global.fileService.processImage(appId, file, resizeWidth, resizeHeight, cropX, cropY, cropW, cropH, quality, opacity, scale, containWidth, containHeight, rDegs, bSigma).then(function(file) {
-                    return res.status(200).send(file);
-                }, function(err) {
-                    return res.status(500).send(err);
-                });
-            }
+                } else {
+                    console.log('+++++ Proccesing Image ++++++++');
+                    global.fileService.processImage(appId, file, resizeWidth, resizeHeight, cropX, cropY, cropW, cropH, quality, opacity, scale, containWidth, containHeight, rDegs, bSigma).then(function(file) {
+                        return res.status(200).send(file);
+                    }, function(err) {
+                        return res.status(500).send(err);
+                    });
+                }
 
+            }).catch (err => {
+                return res.status(500).send(err);
+            });
         }, function(err) {
             return res.status(500).send(err);
-        });
-    }, function(err) {
-        return res.status(500).send(err);
-    })
+        })
+      }
+    ]);
 
     global.apiTracker.log(appId, "File / Get", req.url, sdk);
 }
